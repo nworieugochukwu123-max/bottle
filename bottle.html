@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stainless Black Flask</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root{
+    --bg:#050506; --fg:#eceaea; --muted:#8a8a90;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#050506; --fg:#eceaea; --muted:#8a8a90; } }
+  :root[data-theme="dark"]{ --bg:#050506; --fg:#eceaea; --muted:#8a8a90; }
+  html { scroll-padding-top:env(safe-area-inset-top,0px); background:var(--bg); }
+  body { background:var(--bg); font-family:'Helvetica Neue', Arial, sans-serif; }
+  body.loading { overflow:hidden; }
+  canvas {
+    position:fixed; inset:0; z-index:0; display:block; touch-action:pan-y;
+    transform:scale(0.04); transition:transform 1.8s cubic-bezier(.16,1,.3,1);
+  }
+  body.revealed canvas { transform:scale(1); }
+
+  #loader {
+    position:fixed; inset:0; z-index:9999; background:var(--bg);
+    display:flex; align-items:center; justify-content:center;
+    transition: opacity 0.9s ease;
+  }
+  #loader.done { opacity:0; pointer-events:none; }
+  .loader-inner { display:flex; flex-direction:column; align-items:center; gap:16px; }
+  .loader-bar { width:min(56vw,360px); height:2px; background:rgba(236,234,234,0.15); overflow:hidden; }
+  .loader-fill { height:100%; width:0%; background:var(--fg); }
+  .loader-pct { font-size:11px; letter-spacing:0.18em; color:var(--muted); }
+
+  main {
+    position:relative; z-index:1;
+    transform:scale(0.04); transform-origin:50vw 50vh;
+    transition:transform 1.8s cubic-bezier(.16,1,.3,1);
+  }
+  body.revealed main { transform:scale(1); }
+  section {
+    position:relative; min-height:150vh; display:flex;
+    padding:0 7vw; pointer-events:none;
+  }
+  .hz-center { justify-content:center; text-align:center; }
+  .hz-left   { justify-content:flex-start; text-align:left; }
+  .hz-right  { justify-content:flex-end; text-align:right; }
+  .vt-top    { align-items:flex-start; padding-top:14vh; }
+  .vt-center { align-items:center; }
+  .vt-bottom { align-items:flex-end; padding-bottom:14vh; }
+
+  .copy {
+    max-width:640px;
+  }
+  .hz-center .copy { margin:0 auto; }
+
+  h2 {
+    color:var(--fg); font-weight:700; letter-spacing:-0.02em; line-height:1.04;
+    font-size:clamp(2.4rem, 6.6vw, 5.6rem);
+  }
+  .sub {
+    margin-top:22px; color:var(--muted); font-weight:400;
+    font-size:clamp(0.95rem, 1.3vw, 1.15rem); line-height:1.5; letter-spacing:0.01em;
+  }
+  .hz-center .sub { margin-left:auto; margin-right:auto; max-width:46ch; }
+
+  .cta {
+    pointer-events:auto; display:inline-block; margin-top:34px;
+    padding:14px 30px; border:1px solid rgba(236,234,234,0.35); border-radius:999px;
+    color:var(--fg); text-decoration:none; font-size:0.95rem; letter-spacing:0.02em;
+    transition:background 0.25s ease, color 0.25s ease;
+  }
+  .cta:hover { background:var(--fg); color:#0a0a0b; }
+
+  #hint {
+    position:fixed; left:50%; bottom:calc(30px + env(safe-area-inset-bottom,0px));
+    transform:translateX(-50%); z-index:2; color:var(--muted);
+    font-size:11px; letter-spacing:0.1em; pointer-events:none;
+    transition:opacity 1.2s ease;
+  }
+</style>
+</head>
+<body class="loading">
+
+<div id="loader">
+  <div class="loader-inner">
+    <div class="loader-bar"><div class="loader-fill"></div></div>
+    <div class="loader-pct">0%</div>
+  </div>
+</div>
+<script>
+  window.__loadStart = performance.now();
+  window.__MIN_LOAD_MS = 2200;
+  (function tick(){
+    const el = document.getElementById('loader');
+    const fill = el.querySelector('.loader-fill');
+    const pct = el.querySelector('.loader-pct');
+    const p = Math.min(1, (performance.now() - window.__loadStart) / window.__MIN_LOAD_MS);
+    fill.style.width = (p * 100).toFixed(0) + '%';
+    pct.textContent = Math.round(p * 100) + '%';
+    if (p < 1) requestAnimationFrame(tick);
+  })();
+</script>
+
+<main>
+  <section class="hz-center vt-center"><div class="copy">
+    <h2>Stainless. Silent. Built for every day.</h2>
+    <div class="sub">A flask engineered to disappear into your routine, not sit on top of it.</div>
+  </div></section>
+
+  <section class="hz-right vt-top"><div class="copy">
+    <h2>The cap.</h2>
+    <div class="sub">One twist, vacuum-sealed shut — built to survive a bag full of keys.</div>
+  </div></section>
+
+  <section class="hz-left vt-center"><div class="copy">
+    <h2>The mark of PAUL.</h2>
+    <div class="sub">Laser-etched into the steel, not printed on top of it.</div>
+  </div></section>
+
+  <section class="hz-right vt-bottom"><div class="copy">
+    <h2>The base.</h2>
+    <div class="sub">A wider foot and a rubber ring, so it stays exactly where you put it.</div>
+  </div></section>
+
+  <section class="hz-left vt-center"><div class="copy">
+    <h2>Keeps ice for a day, coffee for half of one.</h2>
+    <div class="sub">Double-wall vacuum insulation, tuned and tested for the long haul.</div>
+  </div></section>
+
+  <section class="hz-right vt-center"><div class="copy">
+    <h2>Turn it any way you like. It won't leak.</h2>
+    <div class="sub">A gasket seal proven through thousands of tips, drops and long commutes.</div>
+  </div></section>
+
+  <section class="hz-center vt-center"><div class="copy">
+    <h2>Own the everyday.</h2>
+    <div class="sub">One flask, one finish, made to outlast the year it was bought in.</div>
+    <a class="cta" href="#top">Get yours</a>
+  </div></section>
+</main>
+
+<div id="hint">Scroll to explore &middot; Drag to rotate</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+
+// ---------- Renderer / Scene / Camera ----------
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.92;
+document.body.insertBefore(renderer.domElement, document.body.firstChild);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x040405);
+scene.fog = new THREE.FogExp2(0x0a0b0d, 0.05);
+
+const camera = new THREE.PerspectiveCamera(42, window.innerWidth/window.innerHeight, 0.01, 12);
+camera.position.set(0.05, 0.20, 0.55);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.enableZoom = false;
+controls.enablePan = false;
+controls.minDistance = 0.32;
+controls.maxDistance = 0.9;
+controls.maxPolarAngle = Math.PI * 0.52;
+controls.autoRotate = false;
+controls.target.set(0, 0.11, 0);
+controls.update();
+
+// ---------- Procedural env cube ----------
+function gradientCanvas(top, bottom, size){
+  size = size || 128;
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const ctx = c.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 0, size);
+  g.addColorStop(0, top);
+  g.addColorStop(1, bottom);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  return c;
+}
+const envMap = new THREE.CubeTexture([
+  gradientCanvas('#22262e', '#060708'),
+  gradientCanvas('#22262e', '#060708'),
+  gradientCanvas('#2e323c', '#0c0e12'),
+  gradientCanvas('#030304', '#000000'),
+  gradientCanvas('#1e222a', '#07080a'),
+  gradientCanvas('#1e222a', '#07080a')
+]);
+envMap.needsUpdate = true;
+
+// ---------- Lights ----------
+const key = new THREE.DirectionalLight(0x9aa8bc, 1.2);
+key.position.set(0.9, 0.8, 0.5);
+scene.add(key);
+
+const fill = new THREE.DirectionalLight(0x5a6878, 0.28);
+fill.position.set(-0.7, 0.4, -0.6);
+scene.add(fill);
+
+const flashLight = new THREE.PointLight(0xd0e0ff, 0, 10);
+flashLight.position.set(0.7, 2.2, -1.1);
+scene.add(flashLight);
+
+// ================= Baked cloud texture =================
+function clampN(x,a,b){ return Math.min(Math.max(x,a),b); }
+function fracN(v){ return v - Math.floor(v); }
+function lerpN(a,b,t){ return a + (b-a)*t; }
+function mix3(a,b,t){ return [lerpN(a[0],b[0],t), lerpN(a[1],b[1],t), lerpN(a[2],b[2],t)]; }
+function smoothstepN(a,b,x){ const t = clampN((x-a)/(b-a),0,1); return t*t*(3-2*t); }
+
+function hash3(x,y,z){
+  const n1 = fracN(Math.sin(x*127.1+y*311.7+z*74.7)*43758.5453123);
+  const n2 = fracN(Math.sin(x*269.5+y*183.3+z*246.1)*43758.5453123);
+  const n3 = fracN(Math.sin(x*113.5+y*271.9+z*124.6)*43758.5453123);
+  return [n1*2-1, n2*2-1, n3*2-1];
+}
+function noise3(x,y,z){
+  const ix=Math.floor(x), iy=Math.floor(y), iz=Math.floor(z);
+  const fx=x-ix, fy=y-iy, fz=z-iz;
+  const ux=fx*fx*(3-2*fx), uy=fy*fy*(3-2*fy), uz=fz*fz*(3-2*fz);
+  function corner(dx,dy,dz){
+    const g = hash3(ix+dx, iy+dy, iz+dz);
+    return g[0]*(fx-dx) + g[1]*(fy-dy) + g[2]*(fz-dz);
+  }
+  const n000=corner(0,0,0), n100=corner(1,0,0), n010=corner(0,1,0), n110=corner(1,1,0);
+  const n001=corner(0,0,1), n101=corner(1,0,1), n011=corner(0,1,1), n111=corner(1,1,1);
+  const nx00=lerpN(n000,n100,ux), nx10=lerpN(n010,n110,ux);
+  const nx01=lerpN(n001,n101,ux), nx11=lerpN(n011,n111,ux);
+  return lerpN(lerpN(nx00,nx10,uy), lerpN(nx01,nx11,uy), uz);
+}
+function fbm(x,y,z,oct){
+  let v=0, amp=0.5, px=x, py=y, pz=z;
+  for(let i=0;i<oct;i++){ v += amp*noise3(px,py,pz); px*=2.03; py*=2.03; pz*=2.03; amp*=0.5; }
+  return v;
+}
+
+function bakeCloudCanvas(){
+  const W=256, H=128;
+  const cnv=document.createElement('canvas'); cnv.width=W; cnv.height=H;
+  const ctx=cnv.getContext('2d');
+  const img=ctx.createImageData(W,H);
+
+  const skyDark  = [0.003, 0.004, 0.006];
+  const skyLight = [0.010, 0.012, 0.016];
+  const cloudDark  = [0.18, 0.20, 0.24];
+  const cloudLight = [0.72, 0.76, 0.82];
+
+  const llen = Math.sqrt(0.9*0.9 + 0.8*0.8 + 0.5*0.5);
+  const ld = [0.9/llen, 0.8/llen, 0.5/llen];
+
+  for(let j=0;j<H;j++){
+    const v = j/H, phi = v*Math.PI, cp = Math.cos(phi), sp = Math.sin(phi);
+    for(let i=0;i<W;i++){
+      const u = i/W, theta = u*Math.PI*2;
+      const dx = sp*Math.cos(theta), dy = cp, dz = sp*Math.sin(theta);
+
+      const px = dx*2.4, py = dy*2.4, pz = dz*2.4;
+      const w0 = fbm(px,py,pz,2);
+      const w1 = fbm(px+5.2,py+1.3,pz+2.8,2);
+      const w2 = fbm(px+1.7,py+9.2,pz+3.1,2);
+      const wx = px + w0*0.9, wy = py + w1*0.9, wz = pz + w2*0.9;
+
+      const shape  = fbm(wx*1.1, wy*1.1, wz*1.1, 4);
+      const detail = fbm(wx*3.2+30, wy*3.2+30, wz*3.2+30, 3);
+
+      const macro     = fbm(dx*1.25, dy*1.25, dz*1.25, 3);
+      const macroMask = smoothstepN(-0.18, 0.45, macro);
+
+      let coverage = smoothstepN(-0.48, 0.32, shape);
+      let cloud    = coverage - detail * 0.055 * (1.0 - coverage);
+      cloud = clampN(cloud * 1.65, 0, 1) * macroMask;
+
+      const lowHalfBias = smoothstepN(0.30, -0.38, dy);
+      cloud *= lowHalfBias;
+
+      const h         = clampN(dy*0.5 + 0.5, 0, 1);
+      const base      = mix3(skyDark, skyLight, h);
+      const lightFace = clampN(dx*ld[0] + dy*ld[1] + dz*ld[2], 0, 1);
+      const mottling  = 0.78 + 0.40 * detail;
+      const t         = clampN(cloud * 0.60 + lightFace * 0.40, 0, 1);
+      const cc        = mix3(cloudDark, cloudLight, t).map(c => c * mottling);
+      const color     = mix3(base, cc, cloud);
+
+      const idx = (j*W + i)*4;
+      img.data[idx]   = clampN(color[0]*255, 0, 255);
+      img.data[idx+1] = clampN(color[1]*255, 0, 255);
+      img.data[idx+2] = clampN(color[2]*255, 0, 255);
+      img.data[idx+3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+
+  const wide = document.createElement('canvas'); wide.width = W*3; wide.height = H;
+  const wctx = wide.getContext('2d');
+  wctx.drawImage(cnv, 0, 0);
+  wctx.drawImage(cnv, W, 0);
+  wctx.drawImage(cnv, W*2, 0);
+
+  const blurred = document.createElement('canvas'); blurred.width = W*3; blurred.height = H;
+  const bctx = blurred.getContext('2d');
+  bctx.filter = 'blur(1.8px)';
+  bctx.drawImage(wide, 0, 0);
+
+  const soft = document.createElement('canvas'); soft.width = W; soft.height = H;
+  const sctx = soft.getContext('2d');
+  sctx.drawImage(blurred, W, 0, W, H, 0, 0, W, H);
+  return soft;
+}
+
+const cloudTex = new THREE.CanvasTexture(bakeCloudCanvas());
+cloudTex.wrapS = THREE.RepeatWrapping;
+cloudTex.wrapT = THREE.ClampToEdgeWrapping;
+cloudTex.minFilter = THREE.LinearMipmapLinearFilter;
+cloudTex.magFilter = THREE.LinearFilter;
+cloudTex.needsUpdate = true;
+
+// ---------- Sky dome ----------
+const cloudMat = new THREE.ShaderMaterial({
+  uniforms: {
+    cloudTex: { value: cloudTex },
+    flash: { value: 0 },
+    flashDir: { value: new THREE.Vector3(0.3, 0.6, -0.4).normalize() }
+  },
+  side: THREE.BackSide,
+  depthWrite: false,
+  vertexShader: `
+    varying vec2 vUv;
+    varying vec3 vPos;
+    void main(){
+      vUv = uv;
+      vPos = position;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D cloudTex;
+    uniform float flash;
+    uniform vec3 flashDir;
+    varying vec2 vUv;
+    varying vec3 vPos;
+    void main(){
+      vec3 color = texture2D(cloudTex, vUv).rgb;
+      color = color * 1.12 + 0.02;
+      vec3 dir = normalize(vPos);
+      float flashFace = clamp(dot(dir, flashDir), 0.0, 1.0);
+      float lum = dot(color, vec3(0.299,0.587,0.114));
+      float flashGlow = flash * pow(flashFace, 1.6);
+      color += flashGlow * vec3(0.85, 0.90, 1.0) * (0.35 + 0.65 * lum);
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `
+});
+const dome = new THREE.Mesh(new THREE.SphereGeometry(6, 24, 16), cloudMat);
+scene.add(dome);
+
+function randomFlashDir(){
+  const az = Math.random() * Math.PI * 2;
+  const el = (25 + Math.random()*55) * Math.PI/180;
+  return new THREE.Vector3(Math.cos(el)*Math.cos(az), Math.sin(el), Math.cos(el)*Math.sin(az));
+}
+let nextFlashTime = 1.5 + Math.random()*2.5;
+function triggerLightning(){
+  const fd = randomFlashDir();
+  cloudMat.uniforms.flashDir.value.copy(fd);
+  flashLight.position.copy(fd).multiplyScalar(3);
+  cloudMat.uniforms.flash.value = 1.0;
+  flashLight.intensity = 7.5;
+  if (Math.random() < 0.5){
+    setTimeout(() => {
+      cloudMat.uniforms.flash.value = Math.max(cloudMat.uniforms.flash.value, 0.8);
+      flashLight.intensity = Math.max(flashLight.intensity, 5.5);
+    }, 110 + Math.random()*60);
+  }
+}
+
+// ---------- Flask geometry (all parts live in a "rig" group we animate on scroll) ----------
+const rig = new THREE.Group();
+scene.add(rig);
+
+const profile = [
+  [0.000, 0.000], [0.038, 0.002], [0.043, 0.008], [0.045, 0.020],
+  [0.045, 0.160], [0.044, 0.170], [0.038, 0.181], [0.028, 0.191],
+  [0.022, 0.200], [0.020, 0.209], [0.020, 0.215], [0.023, 0.218],
+  [0.023, 0.221], [0.000, 0.221]
+].map(p => new THREE.Vector2(p[0], p[1]));
+
+const bodyGeo = new THREE.LatheGeometry(profile, 96);
+
+const bodyMat = new THREE.MeshPhysicalMaterial({
+  color: 0x121416,
+  metalness: 1.0,
+  roughness: 0.20,
+  envMap: envMap,
+  envMapIntensity: 1.05,
+  clearcoat: 0.5,
+  clearcoatRoughness: 0.14,
+  reflectivity: 1.0
+});
+const body = new THREE.Mesh(bodyGeo, bodyMat);
+rig.add(body);
+
+const capMat = new THREE.MeshPhysicalMaterial({
+  color: 0x101214,
+  metalness: 1.0,
+  roughness: 0.24,
+  envMap: envMap,
+  envMapIntensity: 0.95,
+  clearcoat: 0.35,
+  clearcoatRoughness: 0.20
+});
+const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.0255, 0.024, 0.032, 48), capMat);
+cap.position.y = 0.237;
+rig.add(cap);
+
+const gasket = new THREE.Mesh(
+  new THREE.TorusGeometry(0.0225, 0.002, 10, 48),
+  new THREE.MeshStandardMaterial({ color: 0x0c0c0e, metalness: 0.1, roughness: 0.88 })
+);
+gasket.rotation.x = Math.PI / 2;
+gasket.position.y = 0.220;
+rig.add(gasket);
+
+const loop = new THREE.Mesh(new THREE.TorusGeometry(0.014, 0.0032, 10, 32), capMat);
+loop.rotation.x = Math.PI / 2;
+loop.position.set(0, 0.249, -0.006);
+rig.add(loop);
+
+// ---------- 10 000 water droplets via InstancedMesh ----------
+function getRadiusAtHeight(y) {
+  for (let i = 0; i < profile.length - 1; i++) {
+    const p0 = profile[i], p1 = profile[i + 1];
+    if (y >= p0.y && y <= p1.y) {
+      const t = (y - p0.y) / (p1.y - p0.y || 1e-6);
+      return p0.x + (p1.x - p0.x) * t;
+    }
+  }
+  return 0.045;
+}
+
+const DROP_COUNT = 10000;
+
+const dropletGeo = new THREE.SphereGeometry(1, 4, 4);
+const dropletMat = new THREE.MeshPhysicalMaterial({
+  color: 0xe8f4ff,
+  metalness: 0.0,
+  roughness: 0.05,
+  transmission: 0.92,
+  thickness: 0.5,
+  ior: 1.33,
+  transparent: true,
+  opacity: 0.85,
+  envMap: envMap,
+  envMapIntensity: 1.3,
+  clearcoat: 1.0,
+  clearcoatRoughness: 0.03
+});
+
+const droplets = new THREE.InstancedMesh(dropletGeo, dropletMat, DROP_COUNT);
+droplets.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+rig.add(droplets);
+
+const dummy = new THREE.Object3D();
+
+for (let i = 0; i < DROP_COUNT; i++) {
+  const y = 0.012 + Math.random() * 0.200;
+  const r = getRadiusAtHeight(y);
+  const angle = Math.random() * Math.PI * 2;
+
+  const baseSize = 0.00022 + Math.random() * 0.00095;
+  const isRunning = Math.random() < 0.11;
+
+  const offset = r + baseSize * 0.8;
+  dummy.position.set(
+    Math.cos(angle) * offset,
+    y,
+    Math.sin(angle) * offset
+  );
+
+  if (isRunning) {
+    dummy.scale.set(baseSize * 0.7, baseSize * (1.5 + Math.random() * 0.9), baseSize * 0.7);
+    dummy.position.y -= baseSize * 0.25;
+  } else {
+    const s = baseSize * (0.85 + Math.random() * 0.3);
+    dummy.scale.set(s, s * (0.9 + Math.random() * 0.2), s);
+  }
+
+  dummy.rotation.set(
+    (Math.random() - 0.5) * 0.5,
+    (Math.random() - 0.5) * 0.5,
+    (Math.random() - 0.5) * 0.6
+  );
+
+  dummy.updateMatrix();
+  droplets.setMatrixAt(i, dummy.matrix);
+}
+
+droplets.instanceMatrix.needsUpdate = true;
+
+// ---------- "PAUL" wordmark ----------
+function labelTexture(){
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 192;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'middle';
+  ctx.font = "600 92px 'Helvetica Neue', Arial, sans-serif";
+  const text = 'PAUL';
+  const spacing = 14;
+  let widths = [...text].map(ch => ctx.measureText(ch).width);
+  let total = widths.reduce((a,b)=>a+b,0) + spacing*(text.length-1);
+  let x = c.width/2 - total/2;
+  ctx.textAlign = 'left';
+  for (let i=0;i<text.length;i++){
+    ctx.fillText(text[i], x, c.height/2);
+    x += widths[i] + spacing;
+  }
+  return new THREE.CanvasTexture(c);
+}
+const labelMat = new THREE.MeshStandardMaterial({
+  map: labelTexture(), transparent: true, color: 0xffffff,
+  roughness: 0.5, metalness: 0.0, depthWrite: false,
+  polygonOffset: true, polygonOffsetFactor: -2
+});
+const labelArc = 1.15;
+const labelGeo = new THREE.CylinderGeometry(0.0452, 0.0452, 0.0195, 64, 1, true, -labelArc/2, labelArc);
+const label = new THREE.Mesh(labelGeo, labelMat);
+label.position.y = 0.098;
+rig.add(label);
+
+// ---------- Scroll-driven rig motion: one pose per section (intro, cap, brand, base, close) ----------
+// Each feature's local height (y) is known from its geometry above (cap ~0.238, label ~0.098, base ~0.006).
+// dy is solved so that, after scaling by ZOOM, the feature lands exactly on the camera's look-at
+// height (0.11) — dy = 0.11 - ZOOM * y_feature — so only that part fills the frame.
+const ZOOM = 3.0;
+const KF = [
+  { dx: 0.00, dy: 0.000,  rx: 0.00, ry: 0.00,  rz: 0.00, s: 1.00 },              // intro — full bottle
+  { dx: 0.00, dy:-0.604,  rx: 0.00, ry: 1.10,  rz: 0.00, s: ZOOM },              // cap only
+  { dx: 0.00, dy:-0.184,  rx: 0.00, ry: 0.00,  rz: 0.00, s: ZOOM },              // brand only — yaw fixed so PAUL faces camera
+  { dx: 0.00, dy: 0.092,  rx: 0.00, ry:-1.10,  rz: 0.00, s: ZOOM },              // base only
+  { dx: 0.00, dy: 0.000,  rx: 0.00, ry: 0.65,  rz: 0.00, s: 1.35 },              // insulation — full bottle, slight turn
+  { dx: 0.00, dy: 0.000,  rx: 0.00, ry:-0.65,  rz: 0.00, s: 1.35 },              // leak-proof — full bottle, slight turn
+  { dx: 0.00, dy: 0.000,  rx: 0.00, ry: 0.00,  rz: 0.00, s: 1.00 }               // close — full bottle
+];
+
+const sectionEls = Array.from(document.querySelectorAll('main section'));
+let sectionCenters = [];
+function refreshSectionCenters(){
+  sectionCenters = sectionEls.map(s => s.offsetTop + s.offsetHeight / 2);
+}
+refreshSectionCenters();
+window.addEventListener('load', refreshSectionCenters);
+window.addEventListener('resize', refreshSectionCenters);
+
+function rigTargetNow(){
+  const n = sectionCenters.length;
+  const viewCenter = window.scrollY + window.innerHeight / 2;
+  if (viewCenter <= sectionCenters[0]) return KF[0];
+  if (viewCenter >= sectionCenters[n - 1]) return KF[n - 1];
+  for (let i = 0; i < n - 1; i++){
+    if (viewCenter >= sectionCenters[i] && viewCenter <= sectionCenters[i + 1]){
+      const ease = smoothstepN(0, 1, (viewCenter - sectionCenters[i]) / (sectionCenters[i + 1] - sectionCenters[i]));
+      const a = KF[i], b = KF[i + 1];
+      return {
+        dx: lerpN(a.dx, b.dx, ease), dy: lerpN(a.dy, b.dy, ease),
+        rx: lerpN(a.rx, b.rx, ease), ry: lerpN(a.ry, b.ry, ease),
+        rz: lerpN(a.rz, b.rz, ease), s:  lerpN(a.s,  b.s,  ease)
+      };
+    }
+  }
+  return KF[n - 1];
+}
+
+// ---------- Resize ----------
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+setTimeout(() => { const h = document.getElementById('hint'); if (h) h.style.opacity = '0'; }, 4000);
+window.addEventListener('scroll', () => {
+  const h = document.getElementById('hint');
+  if (h) h.style.opacity = '0';
+}, { once: true, passive: true });
+
+// ---------- Render loop ----------
+const smoothed = { dx:0, dy:0, rx:0, ry:0, rz:0, s:1 };
+const EASE_RATE = 1.1; // lower = slower, lazier follow behind the scroll target
+const clock = new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+
+  dome.rotation.y += dt * 0.01;
+  cloudMat.uniforms.flash.value *= 0.85;
+  flashLight.intensity *= 0.82;
+
+  if (clock.elapsedTime > nextFlashTime){
+    triggerLightning();
+    nextFlashTime = clock.elapsedTime + 3 + Math.random()*6;
+  }
+
+  const target = rigTargetNow();
+  const k = 1 - Math.exp(-EASE_RATE * dt);
+  smoothed.dx += (target.dx - smoothed.dx) * k;
+  smoothed.dy += (target.dy - smoothed.dy) * k;
+  smoothed.rx += (target.rx - smoothed.rx) * k;
+  smoothed.ry += (target.ry - smoothed.ry) * k;
+  smoothed.rz += (target.rz - smoothed.rz) * k;
+  smoothed.s  += (target.s  - smoothed.s ) * k;
+  rig.position.set(smoothed.dx, smoothed.dy, 0);
+  rig.rotation.set(smoothed.rx, smoothed.ry, smoothed.rz);
+  rig.scale.setScalar(smoothed.s);
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+// ---------- Reveal: finish the loader (respecting its minimum duration), then zoom into the site ----------
+(function finishLoading(){
+  const el = document.getElementById('loader');
+  const elapsed = performance.now() - window.__loadStart;
+  const remaining = Math.max(0, window.__MIN_LOAD_MS - elapsed);
+  setTimeout(() => {
+    el.querySelector('.loader-fill').style.width = '100%';
+    el.querySelector('.loader-pct').textContent = '100%';
+    requestAnimationFrame(() => {
+      el.classList.add('done');
+      document.body.classList.remove('loading');
+      document.body.classList.add('revealed');
+    });
+  }, remaining);
+})();
+
+animate();
+
+})();
+</script>
+</body>
+</html>
