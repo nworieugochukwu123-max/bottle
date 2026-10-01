@@ -21,7 +21,7 @@
     position:fixed; inset:0; z-index:0; display:block; touch-action:pan-y; cursor:grab;
     transform:scale(0.04); transition:transform 1.8s cubic-bezier(.16,1,.3,1);
   }
-  body.revealed canvas { transform:scale(1); }
+  body.revealed canvas { transform:none; }
 
   #loader { position:fixed; inset:0; z-index:9999; background:var(--bg); display:flex; align-items:center; justify-content:center; transition:opacity .9s ease; }
   #loader.done { opacity:0; pointer-events:none; }
@@ -31,7 +31,7 @@
   .loader-pct { font-size:11px; letter-spacing:.18em; color:var(--muted); font-family:'Helvetica Neue', Arial, sans-serif; }
 
   main { position:relative; z-index:1; transform:scale(0.04); transform-origin:50vw 50vh; transition:transform 1.8s cubic-bezier(.16,1,.3,1); }
-  body.revealed main { transform:scale(1); }
+  body.revealed main { transform:none; }
   section { position:relative; min-height:140vh; display:flex; padding:0 5vw; pointer-events:none; }
   .hz-center { justify-content:center; text-align:center; }
   .hz-left   { justify-content:flex-start; text-align:left; }
@@ -195,8 +195,9 @@
 <script>
 (function(){
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const renderer = new THREE.WebGLRenderer({ antialias:true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const renderer = new THREE.WebGLRenderer({ antialias: devicePixelRatio < 1.5, powerPreference:'high-performance' });
+let pr = Math.min(devicePixelRatio, 2); const prMax = pr, prMin = prMax;   // normal resolution, never scaled down
+renderer.setPixelRatio(pr);
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -217,7 +218,7 @@ const world = new THREE.Group(); scene.add(world);
 function cfbm(x,y,z,sd,o){ let v=0,a=.5,t=0; for(let i=0;i<o;i++){ v+=a*vnoise(x,y,z,sd); t+=a; x*=2.03; y*=2.03; z*=2.03; a*=.5; } return v/t; }
 const sm = (a,b,x) => { const t = Math.min(1,Math.max(0,(x-a)/(b-a))); return t*t*(3-2*t); };
 const mixc = (a,b,t) => [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
-const SW = 640, SH = 320;
+const SW = 512, SH = 256;
 const skyC = document.createElement('canvas'); skyC.width = SW; skyC.height = SH;
 const skyX = skyC.getContext('2d'), img = skyX.createImageData(SW,SH);
 const zen = [.14,.30,.50], hor = [.52,.66,.80], shad = [.22,.31,.42], lite = [.93,.96,.99];
@@ -228,8 +229,8 @@ for(let j=0;j<SH;j++){
     const px = dx*2.3, py = dy*2.3, pz = dz*2.3;
     const w = vnoise(px*1.3+4,py*1.3,pz*1.3,11) - .5;
     const qx = px + w*.9, qy = py + w*.6, qz = pz - w*.9;
-    const d  = cfbm(qx,qy,qz,3,5);
-    const d2 = cfbm(qx+.07,qy+.17,qz+.1,3,5);
+    const d  = cfbm(qx,qy,qz,3,4);
+    const d2 = cfbm(qx+.07,qy+.17,qz+.1,3,4);
     const cover = sm(dy < 0 ? .2 : .3, .62, d);
     const lit = Math.min(1, Math.max(0, .5 + (d - d2)*9 + dy*.15));
     const sky = mixc(hor, zen, Math.pow(Math.max(dy,0), .55));
@@ -270,7 +271,7 @@ for(let i=0;i<9;i++){
 }
 const puffTex = new THREE.CanvasTexture(pf);
 const puffs = new THREE.Group(); world.add(puffs);
-for(let i=0;i<60;i++){
+for(let i=0;i<28;i++){
   const m = new THREE.Sprite(new THREE.SpriteMaterial({ map:puffTex, transparent:true, depthWrite:false, fog:false,
     opacity:.3+Math.random()*.3, color: new THREE.Color().setHSL(.58, .25, .55+Math.random()*.4) }));
   const v = new THREE.Vector3(Math.random()-.5, (Math.random()-.5)*1.4, Math.random()-.5).normalize().multiplyScalar(11+Math.random()*12);
@@ -295,10 +296,10 @@ function makeSnow(n, size, opacity, spread, v0, v1){
     depthWrite:false, fog:false }));
   p.userData = { n, sp, spread }; scene.add(p); return p;
 }
-const snowLayers = [ makeSnow(3600, .06, .9, 26, .35, .9), makeSnow(450, .17, .55, 20, .8, 1.5) ];
+const snowLayers = [ makeSnow(2400, .06, .9, 26, .35, .9), makeSnow(300, .17, .55, 20, .8, 1.5) ];
 
 // speed streaks: long vertical lines that appear when you scroll fast
-const SL = 520, sl = new Float32Array(SL*6), slBase = new Float32Array(SL*3), slSp = new Float32Array(SL);
+const SL = 360, sl = new Float32Array(SL*6), slBase = new Float32Array(SL*3), slSp = new Float32Array(SL);
 for(let i=0;i<SL;i++){ slBase[i*3] = (Math.random()-.5)*20; slBase[i*3+1] = -7 + Math.random()*15; slBase[i*3+2] = (Math.random()-.5)*20; slSp[i] = .5 + Math.random(); }
 const slGeo = new THREE.BufferGeometry(); slGeo.setAttribute('position', new THREE.BufferAttribute(sl,3));
 const streaks = new THREE.LineSegments(slGeo, new THREE.LineBasicMaterial({ color:0xdff0ff, transparent:true, opacity:0, depthWrite:false, fog:false }));
@@ -367,23 +368,118 @@ const flask = (function(){
   gasket.rotation.x = Math.PI/2; gasket.position.y = .22; rig.add(gasket);
   const lp2 = new THREE.Mesh(new THREE.TorusGeometry(.014,.0032,10,32), capMat); lp2.rotation.x = Math.PI/2; lp2.position.set(0,.249,-.006); rig.add(lp2);
 
-  // water droplets (fewer on phones)
-  const DROP = innerWidth < 700 ? 3000 : 10000;
-  const radAt = y => { for(let i=0;i<profile.length-1;i++){ const a = profile[i], b = profile[i+1]; if(y >= a.y && y <= b.y) return a.x + (b.x-a.x)*((y-a.y)/(b.y-a.y||1e-6)); } return .045; };
-  const drops = new THREE.InstancedMesh(new THREE.SphereGeometry(1,4,4), new THREE.MeshPhysicalMaterial({
-    color:0xe8f4ff, metalness:0, roughness:.05, transmission:.92, thickness:.5, ior:1.33, transparent:true, opacity:.85,
-    envMap, envMapIntensity:1.3, clearcoat:1, clearcoatRoughness:.03 }), DROP);
-  rig.add(drops);
-  const dm = new THREE.Object3D();
-  for(let i=0;i<DROP;i++){
-    const y = .012 + Math.random()*.2, an = Math.random()*Math.PI*2, bs = .00022 + Math.random()*.00095, off = radAt(y) + bs*.8;
-    dm.position.set(Math.cos(an)*off, y, Math.sin(an)*off);
-    if(Math.random() < .11){ dm.scale.set(bs*.7, bs*(1.5+Math.random()*.9), bs*.7); dm.position.y -= bs*.25; }
-    else { const q = bs*(.85+Math.random()*.3); dm.scale.set(q, q*(.9+Math.random()*.2), q); }
-    dm.rotation.set((Math.random()-.5)*.5, (Math.random()-.5)*.5, (Math.random()-.5)*.6);
-    dm.updateMatrix(); drops.setMatrixAt(i, dm.matrix);
+  // ---- condensation: a seamless droplet height-field -> normal map + shaded colour/alpha map, projected over the WHOLE bottle (triplanar)
+  const TW = 2048, TH = 1024, HF = new Float32Array(TW*TH);
+  const CS = 32, GW = TW/CS, GH = TH/CS, grid = Array.from({ length:GW*GH }, () => []);
+  const wrapX = x => ((x % TW) + TW) % TW, wrapY = y => ((y % TH) + TH) % TH;
+  const free = (x, y, r) => {                                   // no overlap with an existing drop (tile wraps both ways)
+    const gx = Math.floor(x/CS), gy = Math.floor(y/CS), n = Math.ceil((r+34)/CS);
+    for(let j=-n;j<=n;j++) for(let i=-n;i<=n;i++) for(const d of grid[(((gy+j)%GH)+GH)%GH*GW + (((gx+i)%GW)+GW)%GW]){
+      let dx = Math.abs(d[0]-x), dy = Math.abs(d[1]-y); if(dx > TW/2) dx = TW - dx; if(dy > TH/2) dy = TH - dy;
+      const mm = d[2] + r + 1.2; if(dx*dx + dy*dy < mm*mm) return false;
+    }
+    return true;
+  };
+  function stamp(cx, cy, rx, ry, hs){                           // dome bead merged into the height-field with max()
+    const x0 = Math.floor(cx-rx), x1 = Math.ceil(cx+rx), y0 = Math.floor(cy-ry), y1 = Math.ceil(cy+ry);
+    for(let y=y0;y<=y1;y++){ const row = wrapY(y)*TW;
+      for(let x=x0;x<=x1;x++){
+        const dx = (x-cx)/rx, dy = (y-cy)/ry, q = dx*dx + dy*dy; if(q >= 1) continue;
+        const h = hs*Math.sqrt(1-q), i = row + wrapX(x); if(h > HF[i]) HF[i] = h;
+      } }
   }
-  drops.instanceMatrix.needsUpdate = true;
+  function scatter(n, rMin, rMax, tries, pTrail, pMerge){
+    let made = 0;
+    for(let t=0; t<tries && made<n; t++){
+      const r = rMin + Math.pow(Math.random(),1.7)*(rMax-rMin), x = Math.random()*TW, y = Math.random()*TH;
+      if(!(pMerge && Math.random() < pMerge) && !free(x,y,r)) continue;     // a few are allowed to touch and coalesce
+      grid[Math.floor(y/CS)*GW + Math.floor(x/CS)].push([x,y,r]); made++;
+      if(pTrail && Math.random() < pTrail){                                   // slid drop: meandering streak above it, with tiny beads left behind
+        let w = r*.34, tx = x;
+        const L = (r*8 + 60)*(.4 + Math.random()*1.4);
+        for(let k=r*.6; k<L; k+=2){
+          tx += (Math.random()-.5)*.55; if(Math.random() < .05) w = Math.max(r*.18, w + (Math.random()-.5)*.9);
+          stamp(tx, y-k, w, w, w*.8);
+          if(Math.random() < .025){ const br = 1.1 + Math.random()*2; stamp(tx + (Math.random()-.5)*w*4, y-k, br, br, br*.9); }
+        }
+      }
+      const tall = r > 9 ? 1.18 : 1;
+      stamp(x, y, r, r*tall, r*tall*(.85 + Math.random()*.3));
+    }
+  }
+  scatter(60, 12, 30, 4000, .5, .1);      // heavy drops, many with streaks
+  scatter(800, 4.5, 10, 14000, .12, .12); // medium beads
+  scatter(6000, 1.8, 4, 60000, 0, 0);     // fine beads
+  scatter(14000, .9, 1.6, 90000, 0, 0);   // micro mist
+
+  const lat = (gw, gh) => Float32Array.from({ length:gw*gh }, Math.random), L1 = lat(12,6), L2 = lat(28,14);
+  const vn = (L, gw, gh, x, y) => {                              // seamless value noise for patchy fog
+    const u = x/TW*gw, v = y/TH*gh, ix = Math.floor(u), iy = Math.floor(v), fx = u-ix, fy = v-iy, sx = fx*fx*(3-2*fx), sy = fy*fy*(3-2*fy);
+    const a = L[(iy%gh)*gw + ix%gw], b = L[(iy%gh)*gw + (ix+1)%gw], c = L[((iy+1)%gh)*gw + ix%gw], d = L[((iy+1)%gh)*gw + (ix+1)%gw];
+    return a + (b-a)*sx + (c-a)*sy + (a-b-c+d)*sx*sy;
+  };
+  const nd = new Uint8Array(TW*TH*4), cd = new Uint8Array(TW*TH*4);
+  const hl = Math.hypot(-.42,-.5,1.75), Hx = -.42/hl, Hy = -.5/hl, Hz = 1.75/hl;     // glint from the upper left
+  const sstep = (a,b,x) => { const t = Math.min(1,Math.max(0,(x-a)/(b-a))); return t*t*(3-2*t); };
+  for(let y=0;y<TH;y++){
+    const o0 = (TH-1-y)*TW, ru = wrapY(y-1)*TW, rd = wrapY(y+1)*TW;
+    for(let x=0;x<TW;x++){
+      const i = y*TW + x, o = (o0 + x)*4, h = HF[i];
+      const xl = HF[y*TW + (x+TW-1)%TW], xr = HF[y*TW + (x+1)%TW], yu = HF[ru + x], yd = HF[rd + x];
+      if(h === 0 && xl === 0 && xr === 0 && yu === 0 && yd === 0){
+        const p = .6*vn(L1,12,6,x,y) + .4*vn(L2,28,14,x,y);                        // patchy fog + frosty grain on the bare steel
+        nd[o] = 128 + (Math.random()-.5)*9; nd[o+1] = 128 + (Math.random()-.5)*9; nd[o+2] = 255; nd[o+3] = 255;
+        cd[o] = 200; cd[o+1] = 215; cd[o+2] = 230; cd[o+3] = 5 + 60*p*p + Math.random()*5;
+        continue;
+      }
+      const gx = (xr-xl)*.5, gy = (yd-yu)*.5, l = Math.hypot(gx,gy,1), nx = -gx/l, ny = -gy/l, nz = 1/l;
+      nd[o] = (nx*.5+.5)*255; nd[o+1] = (-ny*.5+.5)*255; nd[o+2] = (nz*.5+.5)*255; nd[o+3] = 255;
+      const ring = 1 - nz, edge = sstep(.8,.97,ring);
+      const spec = Math.pow(Math.max(0, nx*Hx + ny*Hy + nz*Hz), 90);                // bright glint, upper left
+      const caustic = sstep(.2,.65, nx*.62 + ny*.78)*(1-edge);                       // focused light, lower right
+      const v = .07 + caustic*.5 + spec*1.2 + ring*.06, k = 1 - edge*.85, cov = Math.min(1, h*1.5);
+      cd[o] = Math.min(255, 210*v*k); cd[o+1] = Math.min(255, 235*v*k); cd[o+2] = Math.min(255, 255*v*k);
+      cd[o+3] = Math.min(1, .18 + v*.85 + edge*.5)*cov*255;                          // dark rim, clear glassy middle
+    }
+  }
+  const mkTex = (data, enc) => { const t = new THREE.DataTexture(data, TW, TH, THREE.RGBAFormat);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter;
+    t.generateMipmaps = true; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); t.encoding = enc; t.needsUpdate = true; return t; };
+  const colTex = mkTex(cd, THREE.sRGBEncoding), nrmTex = mkTex(nd, THREE.LinearEncoding);
+
+  // triplanar wet-glass material: projects the droplet tile along X, Y and Z so it covers every curve with no stretching
+  const wetMat = new THREE.MeshPhysicalMaterial({ color:0xffffff, emissive:0xffffff, emissiveIntensity:.5, roughness:.04, metalness:0,
+    transparent:true, depthWrite:false, envMap, envMapIntensity:2, clearcoat:1, clearcoatRoughness:.02, polygonOffset:true, polygonOffsetFactor:-1 });
+  wetMat.onBeforeCompile = sh => {
+    sh.uniforms.uCol = { value:colTex }; sh.uniforms.uNrm = { value:nrmTex }; sh.uniforms.uTile = { value:new THREE.Vector2(4,8) };   // tile = .25 x .125 units
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vOP; varying vec3 vON; varying vec3 vAX; varying vec3 vAY; varying vec3 vAZ;')
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+        vOP = position; vON = normal;
+        vAX = normalize(normalMatrix*vec3(1.,0.,0.)); vAY = normalize(normalMatrix*vec3(0.,1.,0.)); vAZ = normalize(normalMatrix*vec3(0.,0.,1.));`);
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform sampler2D uCol; uniform sampler2D uNrm; uniform vec2 uTile;\nvarying vec3 vOP; varying vec3 vON; varying vec3 vAX; varying vec3 vAY; varying vec3 vAZ;')
+      .replace('#include <map_fragment>', `
+        vec3 bw = pow(abs(normalize(vON)), vec3(6.0)); bw /= (bw.x + bw.y + bw.z);
+        vec2 uvX = vOP.zy*uTile, uvY = vOP.xz*uTile, uvZ = vOP.xy*uTile;
+        vec4 tc = texture2D(uCol, uvX)*bw.x + texture2D(uCol, uvY)*bw.y + texture2D(uCol, uvZ)*bw.z;
+        diffuseColor *= tc;`)
+      .replace('#include <normal_fragment_maps>', `
+        vec3 nO = normalize(vON);
+        vec3 tX = texture2D(uNrm, uvX).xyz*2.0 - 1.0; vec3 tY = texture2D(uNrm, uvY).xyz*2.0 - 1.0; vec3 tZ = texture2D(uNrm, uvZ).xyz*2.0 - 1.0;
+        tX.xy *= 1.3; tY.xy *= 1.3; tZ.xy *= 1.3;
+        tX = vec3(tX.xy + nO.zy, abs(tX.z)*nO.x);
+        tY = vec3(tY.xy + nO.xz, abs(tY.z)*nO.y);
+        tZ = vec3(tZ.xy + nO.xy, abs(tZ.z)*nO.z);
+        vec3 pO = normalize(tX.zyx*bw.x + tY.xzy*bw.y + tZ.xyz*bw.z);
+        normal = normalize(pO.x*vAX + pO.y*vAY + pO.z*vAZ);`)
+      .replace('#include <emissivemap_fragment>', 'totalEmissiveRadiance *= tc.rgb;');
+  };
+  // overlay shells just outside the body (base, sides, shoulder, neck) and the cap
+  const ov = profile.map(p => new THREE.Vector2(p.x > 0 ? p.x + .0004 : 0, p.y + (p.y > .22 ? .0004 : p.y < .001 ? -.0004 : 0)));
+  const capGeo = new THREE.CylinderGeometry(.0259,.0244,.0324,48); capGeo.translate(0,.237,0);
+  const wetBody = new THREE.Mesh(new THREE.LatheGeometry(ov,96), wetMat), wetCap = new THREE.Mesh(capGeo, wetMat);
+  wetBody.renderOrder = wetCap.renderOrder = 2; rig.add(wetBody, wetCap);
 
   // PAUL wordmark
   const lc = document.createElement('canvas'); lc.width = 512; lc.height = 192;
@@ -424,7 +520,7 @@ function vnoise(x,y,z,s){
 function fbm(x,y,z,s){ return (vnoise(x,y,z,s)*.5 + vnoise(x*2,y*2,z*2,s)*.25 + vnoise(x*4,y*4,z*4,s)*.125)/.875; }
 
 // welded geometry
-const geo = new THREE.IcosahedronGeometry(1, 40);
+const geo = new THREE.IcosahedronGeometry(1, 32);
 const pos = geo.attributes.position, N = pos.count;
 const gid = new Int32Array(N), dirs = [], km = new Map();
 for(let i=0;i<N;i++){
@@ -460,18 +556,20 @@ const gN = new Float32Array(G*3);
 const A=new THREE.Vector3(), B=new THREE.Vector3(), C=new THREE.Vector3();
 let minY = 0, maxY = 0, baseY = 0;
 function applyShape(cur){
-  minY = 1e9;
-  for(let i=0;i<N;i++){ const g=gid[i]*3; pos.setXYZ(i,cur[g],cur[g+1],cur[g+2]); }
-  maxY = -1e9; for(let g=1; g<cur.length; g+=3){ if(cur[g]<minY) minY = cur[g]; if(cur[g]>maxY) maxY = cur[g]; }
+  const pa = pos.array, na = geo.attributes.normal.array;
+  let mn = 1e9, mx = -1e9;
+  for(let i=0;i<N;i++){ const g = gid[i]*3, o = i*3; pa[o] = cur[g]; pa[o+1] = cur[g+1]; pa[o+2] = cur[g+2]; }
+  for(let g=1; g<cur.length; g+=3){ const y = cur[g]; if(y < mn) mn = y; if(y > mx) mx = y; }
+  minY = mn; maxY = mx;
   gN.fill(0);
   for(let i=0;i<N;i+=3){
-    A.fromBufferAttribute(pos,i); B.fromBufferAttribute(pos,i+1); C.fromBufferAttribute(pos,i+2);
-    C.sub(B); A.sub(B); C.cross(A);
-    for(let k=0;k<3;k++){ const g=gid[i+k]*3; gN[g]+=C.x; gN[g+1]+=C.y; gN[g+2]+=C.z; }
+    const o = i*3, bx = pa[o+3], by = pa[o+4], bz = pa[o+5];
+    const ax = pa[o]-bx, ay = pa[o+1]-by, az = pa[o+2]-bz, cx = pa[o+6]-bx, cy = pa[o+7]-by, cz = pa[o+8]-bz;
+    const nx = cy*az - cz*ay, ny = cz*ax - cx*az, nz = cx*ay - cy*ax;
+    for(let k=0;k<3;k++){ const g = gid[i+k]*3; gN[g] += nx; gN[g+1] += ny; gN[g+2] += nz; }
   }
-  const nr = geo.attributes.normal;
-  for(let i=0;i<N;i++){ const g=gid[i]*3, l=Math.hypot(gN[g],gN[g+1],gN[g+2])||1; nr.setXYZ(i,gN[g]/l,gN[g+1]/l,gN[g+2]/l); }
-  pos.needsUpdate = true; nr.needsUpdate = true;
+  for(let i=0;i<N;i++){ const g = gid[i]*3, o = i*3, l = Math.hypot(gN[g],gN[g+1],gN[g+2]) || 1; na[o] = gN[g]/l; na[o+1] = gN[g+1]/l; na[o+2] = gN[g+2]/l; }
+  pos.needsUpdate = true; geo.attributes.normal.needsUpdate = true;
   baseY = -(minY+maxY)/2; stone.position.y = baseY;
 }
 
@@ -578,10 +676,20 @@ let lastIdx = -1, prevY = scrollY, sf = 0, rollX = 0, rollZ = 0;
 setTimeout(() => { const h = document.getElementById('hint'); if(h) h.style.opacity = 0; }, 4000);
 addEventListener('scroll', () => { const h = document.getElementById('hint'); if(h) h.style.opacity = 0; }, { once:true, passive:true });
 
+let fAcc = 0, fN = 0, lastPR = 0, lastMix = -1;
+function applyPR(){ renderer.setPixelRatio(pr); renderer.setSize(innerWidth, innerHeight); }
 const clock = new THREE.Clock();
 (function loop(){
   requestAnimationFrame(loop);
-  const dt = Math.min(clock.getDelta(), .05);
+  const rawDt = clock.getDelta(), dt = Math.min(rawDt, .05);
+  fAcc += rawDt;
+  if(++fN === 45){                                      // adaptive resolution: trade sharpness for smoothness
+    const avg = fAcc/fN, now = clock.elapsedTime; fAcc = 0; fN = 0;
+    if(now > 3){
+      if(avg > .022 && pr > prMin){ pr = Math.max(prMin, pr - .15); applyPR(); lastPR = now; }
+      else if(avg < .0175 && pr < prMax && now - lastPR > 6){ pr = Math.min(prMax, pr + .1); applyPR(); lastPR = now; }
+    }
+  }
   if(morphT < 1){
     morphT = Math.min(1, morphT + dt/1.4);
     const e = morphT < .5 ? 4*morphT**3 : 1 - Math.pow(-2*morphT+2,3)/2;
@@ -637,11 +745,11 @@ const clock = new THREE.Clock();
   dome.material.uniforms.mixF.value = m;
   stone.visible = m < .98; puffs.visible = m < .98; flask.wrap.visible = m > .02;
   key.intensity = 2.2*(1-m); rim.intensity = 1.6*(1-m);
-  puffs.children.forEach(p => { p.material.opacity = p.userData.o*(1-m); });
+  if(Math.abs(m - lastMix) > .001){ lastMix = m; puffs.children.forEach(p => { p.material.opacity = p.userData.o*(1-m); }); }
   flask.update(P, R, fyaw, clock.elapsedTime, dt);
   world.rotation.y = yaw*.25;
   const sa = Math.min(Math.abs(sf), 3);
-  camera.fov = 38 + sa*3.5; camera.updateProjectionMatrix();
+  const nf = 38 + sa*3.5; if(Math.abs(camera.fov - nf) > .02){ camera.fov = nf; camera.updateProjectionMatrix(); }
   camera.position.set((Math.random()-.5)*sa*.02, Math.sin(pitch)*R + (Math.random()-.5)*sa*.02, Math.cos(pitch)*R);
   camera.lookAt(0, 0, 0);
   renderer.render(scene, camera);
