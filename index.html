@@ -91,32 +91,22 @@
     <div class="sub">A cloudy heart, trapped air and hairline fractures hide inside the clear.</div>
   </div></section>
 
-  <section class="hz-right vt-top"><div class="copy">
-    <h2>Every edge, cleaved.</h2>
-    <div class="sub">Flat faces and rounded corners, where the ice broke instead of melted.</div>
-  </div></section>
 
-  <section class="hz-left vt-center"><div class="copy">
-    <h2>Clear as glass.</h2>
-    <div class="sub">Look through it and the whole sky bends.</div>
-  </div></section>
 
-  
-
-  <section class="hz-center vt-top"><div class="copy">
-    <h2>Slow to melt.</h2>
-    <div class="sub">Thick, dense and patient. It gives up the cold one drop at a time.</div>
-  </div></section>
-
-  <section class="hz-left vt-bottom"><div class="copy">
-    <h2>Light bends here.</h2>
-    <div class="sub">Sun, cloud and snow all pass through, and none of it leaves the same way.</div>
+  <section class="hz-center vt-bottom"><div class="copy">
+    <h2>No two alike.</h2>
+    <div class="sub">Each time you arrive, the stone forms again from scratch.</div>
   </div></section>
 
   <section class="hz-right vt-center"><div class="copy">
-    <h2>Pure at 0&deg;.</h2>
-    <div class="sub">Right at the edge between water and stone, where it holds its shape.</div>
+    <h2>Let it fall.</h2>
+    <div class="sub">Snow keeps coming, and the clouds never clear.</div>
   </div></section>
+
+
+
+
+
 
   <section class="hz-center vt-center"><div class="copy">
     <h2>Stay cold.</h2>
@@ -285,11 +275,180 @@ const snowLayers = [ makeSnow(LITE ? 1400 : 2400, .06, .9, 26, .35, .9), makeSno
 
 // ================= the flask =================
 const flask = (function(){
-  const gc = (t,b) => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), g = x.createLinearGradient(0,0,0,128); g.addColorStop(0,t); g.addColorStop(1,b); x.fillStyle = g; x.fillRect(0,0,128,128); return c; };
-  const envMap = new THREE.CubeTexture([gc('#22262e','#060708'),gc('#22262e','#060708'),gc('#2e323c','#0c0e12'),gc('#030304','#000000'),gc('#1e222a','#07080a'),gc('#1e222a','#07080a')]);
+  const gc = (t,b,strip) => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), g = x.createLinearGradient(0,0,0,128); g.addColorStop(0,t); g.addColorStop(1,b); x.fillStyle = g; x.fillRect(0,0,128,128); if(strip){ x.fillStyle = 'rgba(205,232,255,.95)'; x.fillRect(strip[0],0,strip[1],128); } return c; };
+  const envMap = new THREE.CubeTexture([gc('#2c3d52','#0a1018',[50,26]),gc('#26364a','#080e15'),gc('#3a4f68','#101a26'),gc('#030508','#000000'),gc('#2a3b50','#0a1119',[78,18]),gc('#22313f','#070c12')]);
   envMap.needsUpdate = true;
-  const fKey = new THREE.DirectionalLight(0x9aa8bc, 0); fKey.position.set(.9,.8,.5); scene.add(fKey);
-  const fFill = new THREE.DirectionalLight(0x5a6878, 0); fFill.position.set(-.7,.4,-.6); if(!LITE) scene.add(fFill);
+
+  // ---- seamless frost-crystal tile (R: crystal height, G: coverage field, B: feathery veins)
+  const FS = LITE ? 256 : 512, fdat = new Uint8Array(FS*FS*4);
+  const mkPts = n => Float32Array.from({ length:n*n*2 }, Math.random), PT2 = mkPts(40), PT3 = mkPts(96);
+  function worley(P, n, x, y){                                     // cellular noise: distance to nearest / second nearest crystal seed
+    const cx = Math.floor(x*n), cy = Math.floor(y*n); let f1 = 9, f2 = 9;
+    for(let j=-1;j<=1;j++) for(let i=-1;i<=1;i++){
+      const gx = cx+i, gy = cy+j, k = ((((gy%n)+n)%n)*n + (((gx%n)+n)%n))*2;
+      const dx = (gx + P[k])/n - x, dy = (gy + P[k+1])/n - y, d = Math.sqrt(dx*dx + dy*dy)*n;
+      if(d < f1){ f2 = f1; f1 = d; } else if(d < f2) f2 = d;
+    }
+    return [f1, f2];
+  }
+  const LV = { 4:Float32Array.from({length:16}, Math.random), 8:Float32Array.from({length:64}, Math.random), 16:Float32Array.from({length:256}, Math.random) };
+  const vnF = (n, x, y) => {                                       // seamless value noise
+    x = ((x%1)+1)%1; y = ((y%1)+1)%1;
+    const L = LV[n], u = x*n, v = y*n, ix = Math.floor(u), iy = Math.floor(v), fx = u-ix, fy = v-iy, sx = fx*fx*(3-2*fx), sy = fy*fy*(3-2*fy);
+    const a = L[(iy%n)*n + ix%n], b = L[(iy%n)*n + (ix+1)%n], c = L[((iy+1)%n)*n + ix%n], d = L[((iy+1)%n)*n + (ix+1)%n];
+    return a + (b-a)*sx + (c-a)*sy + (a-b-c+d)*sx*sy;
+  };
+  for(let y=0;y<FS;y++) for(let x=0;x<FS;x++){
+    const fx = x/FS, fy = y/FS, o = (y*FS + x)*4;
+    const wx = fx + .07*(vnF(4,fx+.3,fy) - .5), wy = fy + .07*(vnF(4,fx,fy+.7) - .5);              // domain warp = organic, non-blobby edges
+    const a = worley(PT2, 40, fx, fy), b = worley(PT3, 96, fx, fy);
+    const crystal = (Math.max(0, 1 - a[0]/.9)*.65 + Math.max(0, 1 - b[0]/.9)*.35)*(.7 + .3*Math.min(1, (a[1]-a[0])*3));
+    const cover = .5*vnF(4,wx,wy) + .3*vnF(8,wx,wy) + .2*vnF(16,wx,wy);
+    const rd = 1 - Math.abs(2*(.5*vnF(8,wx*1.3,wy) + .5*vnF(16,wx,wy*1.3)) - 1);
+    fdat[o] = crystal*255; fdat[o+1] = cover*255; fdat[o+2] = rd*rd*rd*255; fdat[o+3] = 255;
+  }
+  const frostTex = new THREE.DataTexture(fdat, FS, FS, THREE.RGBAFormat);
+  frostTex.wrapS = frostTex.wrapT = THREE.RepeatWrapping; frostTex.minFilter = THREE.LinearMipmapLinearFilter; frostTex.magFilter = THREE.LinearFilter;
+  frostTex.generateMipmaps = true; frostTex.anisotropy = Math.min(LITE ? 1 : 4, renderer.capabilities.getMaxAnisotropy()); frostTex.needsUpdate = true;
+
+  // ---- condensation beads: a seamless droplet normal map (+ coverage), projected over the whole bottle inside the steel's own shader
+  const dropTex = (function(){
+    const TW = LITE ? 1024 : 2048, TH = TW/2, S = TW/2048, HF = new Float32Array(TW*TH);
+    const CS = 32, GW = TW/CS, GH = TH/CS, grid = Array.from({ length:GW*GH }, () => []);
+    const wrapX = x => ((x % TW) + TW) % TW, wrapY = y => ((y % TH) + TH) % TH;
+    const free = (x, y, r) => {
+      const gx = Math.floor(x/CS), gy = Math.floor(y/CS), n = Math.ceil((r+34)/CS);
+      for(let j=-n;j<=n;j++) for(let i=-n;i<=n;i++) for(const d of grid[(((gy+j)%GH)+GH)%GH*GW + (((gx+i)%GW)+GW)%GW]){
+        let dx = Math.abs(d[0]-x), dy = Math.abs(d[1]-y); if(dx > TW/2) dx = TW - dx; if(dy > TH/2) dy = TH - dy;
+        const mm = d[2] + r + 1.2; if(dx*dx + dy*dy < mm*mm) return false;
+      }
+      return true;
+    };
+    function stamp(cx, cy, rx, ry, hs){
+      const x0 = Math.floor(cx-rx), x1 = Math.ceil(cx+rx), y0 = Math.floor(cy-ry), y1 = Math.ceil(cy+ry);
+      for(let y=y0;y<=y1;y++){ const row = wrapY(y)*TW;
+        for(let x=x0;x<=x1;x++){
+          const dx = (x-cx)/rx, dy = (y-cy)/ry, q = dx*dx + dy*dy; if(q >= 1) continue;
+          const h = hs*Math.sqrt(1-q), i = row + wrapX(x); if(h > HF[i]) HF[i] = h;
+        } }
+    }
+    function scatter(n, rMin, rMax, tries, pTrail, pMerge){
+      let made = 0;
+      for(let t=0; t<tries && made<n; t++){
+        const r = rMin + Math.pow(Math.random(),1.7)*(rMax-rMin), x = Math.random()*TW, y = Math.random()*TH;
+        if(!(pMerge && Math.random() < pMerge) && !free(x,y,r)) continue;
+        grid[Math.floor(y/CS)*GW + Math.floor(x/CS)].push([x,y,r]); made++;
+        if(pTrail && Math.random() < pTrail){                     // a drop that has run down: thin wet streak above it, tiny beads left behind
+          let w = r*.34, tx = x;
+          const L = (r*8 + 60*S)*(.4 + Math.random()*1.4);
+          for(let k=r*.6; k<L; k+=2*S){
+            tx += (Math.random()-.5)*.55*S; if(Math.random() < .05) w = Math.max(r*.18, w + (Math.random()-.5)*.9*S);
+            stamp(tx, y-k, w, w, w*.8);
+            if(Math.random() < .025){ const br = (1.1 + Math.random()*2)*S; stamp(tx + (Math.random()-.5)*w*4, y-k, br, br, br*.9); }
+          }
+        }
+        const tall = r > 9 ? 1.18 : 1;
+        stamp(x, y, r, r*tall, r*tall*(.85 + Math.random()*.3));
+      }
+    }
+    scatter(60, 12*S, 30*S, 4000, .5, .1);       // heavy drops, many have run
+    scatter(800, 4.5*S, 10*S, 14000, .12, .12);  // medium beads
+    scatter(6000, 1.8*S, 4*S, 60000, 0, 0);      // fine beads
+    if(!LITE) scatter(14000, .9, 1.6, 90000, 0, 0);   // micro sweat
+    const dd = new Uint8Array(TW*TH*4);
+    for(let y=0;y<TH;y++){
+      const o0 = (TH-1-y)*TW, ru = wrapY(y-1)*TW, rd = wrapY(y+1)*TW;
+      for(let x=0;x<TW;x++){
+        const i = y*TW + x, o = (o0 + x)*4, h = HF[i];
+        const xl = HF[y*TW + (x+TW-1)%TW], xr = HF[y*TW + (x+1)%TW], yu = HF[ru + x], yd = HF[rd + x];
+        if(h === 0 && xl === 0 && xr === 0 && yu === 0 && yd === 0){ dd[o] = 128; dd[o+1] = 128; dd[o+2] = 0; dd[o+3] = 255; continue; }
+        const gx = (xr-xl)*.5, gy = (yd-yu)*.5, l = Math.hypot(gx,gy,1);
+        dd[o] = (-gx/l*.5+.5)*255; dd[o+1] = (gy/l*.5+.5)*255; dd[o+2] = Math.min(1, h*1.5)*255; dd[o+3] = 255;   // tangent normal xy + coverage
+      }
+    }
+    const t = new THREE.DataTexture(dd, TW, TH, THREE.RGBAFormat);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter;
+    t.generateMipmaps = true; t.anisotropy = Math.min(LITE ? 1 : 8, renderer.capabilities.getMaxAnisotropy()); t.needsUpdate = true;
+    return t;
+  })();
+
+  const frostU = { uFrost:{ value:0 }, uTime:{ value:0 }, uDrops:{ value:0 } };
+  function frostify(mat){
+    mat.onBeforeCompile = sh => {
+      sh.uniforms.uFrost = frostU.uFrost; sh.uniforms.uTime = frostU.uTime; sh.uniforms.uFT = { value:frostTex }; sh.uniforms.uDrops = frostU.uDrops; sh.uniforms.uDP = { value:dropTex };
+      sh.vertexShader = sh.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vOP; varying vec3 vON; varying vec3 vAX; varying vec3 vAY; varying vec3 vAZ;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvOP = position; vON = normal; vAX = normalize(normalMatrix*vec3(1.,0.,0.)); vAY = normalize(normalMatrix*vec3(0.,1.,0.)); vAZ = normalize(normalMatrix*vec3(0.,0.,1.));');
+      sh.fragmentShader = sh.fragmentShader
+        .replace('#include <common>', `#include <common>
+          uniform float uFrost; uniform float uTime; uniform float uDrops; uniform sampler2D uFT; uniform sampler2D uDP; varying vec3 vOP; varying vec3 vON; varying vec3 vAX; varying vec3 vAY; varying vec3 vAZ;
+          float h31(vec3 p){ p = fract(p*0.3183099 + 0.1); p *= 17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+          vec4 triFT(vec3 p, vec3 w, float s){
+            vec4 r = texture2D(uFT, p.zy*s)*w.x + texture2D(uFT, p.xy*s)*w.z;
+            ${LITE ? '' : 'r += texture2D(uFT, p.xz*s)*w.y;'}
+            return r;
+          }
+          vec3 frostBump(vec3 sp, vec3 sn, vec2 dH, float fd){            // screen-space bump from the crystal height
+            vec3 sx = dFdx(sp), sy = dFdy(sp);
+            vec3 r1 = cross(sy, sn), r2 = cross(sn, sx);
+            float det = dot(sx, r1)*fd;
+            vec3 grad = sign(det)*(dH.x*r1 + dH.y*r2);
+            return normalize(abs(det)*sn - grad);
+          }`)
+        .replace('#include <color_fragment>', `#include <color_fragment>
+          vec3 fw = pow(abs(normalize(vON)), vec3(4.0)); ${LITE ? 'fw.y = 0.0;' : ''} fw /= (fw.x + fw.y + fw.z + 0.0001);
+          vec4 T1 = triFT(vOP, fw, 10.0);
+          vec4 T2 = triFT(vOP + vec3(0.37), fw, 31.0);
+          float cover = T1.g*0.6 + T2.g*0.4;                                             // patchy coverage
+          float low = 1.0 - smoothstep(0.0, 0.20, vOP.y); float lc = low*low;                               // frost gathers toward the cold base
+          float curv = clamp(length(fwidth(vNormal))*25.0, 0.0, 1.0);                    // and on edges and shoulders
+          float wipe = smoothstep(0.62, 0.82, sin(atan(vOP.x, vOP.z)*3.0 + 1.3 + sin(vOP.y*22.0)*0.8)*0.5 + 0.5);   // clear streaks where a hand has wiped it
+          float cv = (cover - 0.548)*3.6 + 0.5 + curv*0.06; float thr = 0.55 - lc*0.40 - low*0.08;
+          float thick = smoothstep(thr, thr + 0.18, cv) * (1.0 - wipe*0.85) * uFrost;
+          float frH = thick*(T1.r*0.6 + T2.r*0.4 + T1.b*0.25);
+          vec3 frostCol = mix(vec3(0.34,0.46,0.58), vec3(0.93,0.97,1.0), clamp(T2.r*0.6 + T1.b*0.5, 0.0, 1.0)*smoothstep(0.3, 1.0, thick));   // thin frost = translucent blue-grey; only thick crystal goes white
+          diffuseColor.rgb = mix(diffuseColor.rgb, frostCol, thick*0.78);
+          float fres = pow(1.0 - abs(dot(normalize(vNormal), normalize(vViewPosition))), 3.0);
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.50,0.68,0.86), fres*uFrost*(0.18 + 0.22*low));   // cold bloom at grazing angles
+          vec3 dbw = pow(abs(normalize(vON)), vec3(6.0)); ${LITE ? 'dbw.y = 0.0;' : ''} dbw /= (dbw.x + dbw.y + dbw.z + 0.0001);
+          vec4 dX = texture2D(uDP, vOP.zy*vec2(4.0,8.0)), dZ = texture2D(uDP, vOP.xy*vec2(4.0,8.0));
+          ${LITE ? 'vec4 dY = vec4(0.5,0.5,0.0,1.0);' : 'vec4 dY = texture2D(uDP, vOP.xz*vec2(4.0,8.0));'}
+          float dmk = (dX.b*dbw.x + dY.b*dbw.y + dZ.b*dbw.z) * (1.0 - wipe*0.9) * uDrops;              // where beads sit (wiped streaks stay clear)
+          vec2 dn = (dX.rg*dbw.x + dY.rg*dbw.y + dZ.rg*dbw.z)*2.0 - 1.0;
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.015,0.035,0.055), dmk*0.75);                  // clear water over dark metal`)
+        .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix((roughnessFactor + (h31(vec3(0.0, floor(vOP.y*1100.0), 0.0)) - 0.5)*0.10), 0.78, thick); roughnessFactor = mix(roughnessFactor, 0.035, dmk);')
+        .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\nmetalnessFactor *= (1.0 - thick*0.9); metalnessFactor *= (1.0 - dmk*0.88);')
+        .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+          normal = frostBump(-vViewPosition, normal, vec2(dFdx(frH), dFdy(frH))*0.0035, faceDirection);
+          {   // beads: lens-shaped normals, blended in by coverage
+            vec3 nO = normalize(vON);
+            vec3 tX = vec3(dX.rg*2.0 - 1.0, 0.0), tY = vec3(dY.rg*2.0 - 1.0, 0.0), tZ = vec3(dZ.rg*2.0 - 1.0, 0.0);
+            tX.z = sqrt(max(0.0, 1.0 - dot(tX.xy, tX.xy))); tY.z = sqrt(max(0.0, 1.0 - dot(tY.xy, tY.xy))); tZ.z = sqrt(max(0.0, 1.0 - dot(tZ.xy, tZ.xy)));
+            tX = vec3(tX.xy + nO.zy, abs(tX.z)*nO.x); tY = vec3(tY.xy + nO.xz, abs(tY.z)*nO.y); tZ = vec3(tZ.xy + nO.xy, abs(tZ.z)*nO.z);
+            vec3 pO = normalize(tX.zyx*dbw.x + tY.xzy*dbw.y + tZ.xyz*dbw.z);
+            normal = normalize(mix(normal, normalize(pO.x*vAX + pO.y*vAY + pO.z*vAZ), clamp(dmk*1.4, 0.0, 1.0)));
+          }`)
+        .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+          { float ring = length(dn); float caus = smoothstep(0.15, 0.6, dot(dn, vec2(0.62, -0.78)))*(1.0 - smoothstep(0.8, 0.97, ring)); totalEmissiveRadiance += vec3(0.5,0.75,1.0)*caus*dmk*0.45; }   // light focused through each bead
+          if(thick > 0.04){
+            vec3 cell = floor(vOP*900.0);
+            float hh = h31(cell);
+            vec3 rn = normalize(normal + (vec3(h31(cell + 1.7), h31(cell + 3.1), h31(cell + 5.3)) - 0.5)*1.1);
+            vec3 V = normalize(vViewPosition);
+            float glit = 0.0;
+            #if NUM_DIR_LIGHTS > 0
+            for(int i = 0; i < NUM_DIR_LIGHTS; i++){
+              vec3 Hh = normalize(directionalLights[i].direction + V);
+              glit += pow(max(dot(rn, Hh), 0.0), 220.0)*dot(directionalLights[i].color, vec3(0.33));
+            }
+            #endif
+            float tw = 0.7 + 0.3*sin(uTime*2.2 + hh*40.0);
+            totalEmissiveRadiance += vec3(0.8,0.92,1.0)*(step(0.9, hh)*glit*thick*6.0*tw) + vec3(0.02,0.05,0.09)*thick;   // glittering facets catch the lights
+          }`);
+    };
+  }
+  const fKey = new THREE.DirectionalLight(0xa9c6e6, 0); fKey.position.set(.9,.8,.5); scene.add(fKey);
+  const fFill = new THREE.DirectionalLight(0x86c8ff, 0); fFill.position.set(-.8,.35,-.7); scene.add(fFill);
   const flashLight = new THREE.PointLight(0xd0e0ff, 0, 0); scene.add(flashLight);
 
   // storm clouds (baked once, cross-faded in by the dome shader)
@@ -335,13 +494,27 @@ const flask = (function(){
   const stormTex = new THREE.CanvasTexture(soft); stormTex.wrapS = THREE.RepeatWrapping; stormTex.encoding = THREE.sRGBEncoding;
   dome.material.uniforms.texB.value = stormTex;
 
+  // reflection environment for the steel: dark storm sky plus cold HDR softboxes, prefiltered once (this is what gives metal its real highlights)
+  const envS = new THREE.Scene();
+  envS.add(new THREE.Mesh(new THREE.SphereGeometry(10,32,16), new THREE.MeshBasicMaterial({ map:stormTex, side:THREE.BackSide, toneMapped:false })));
+  const softbox = (w, h, x, y, z, c) => { const b = new THREE.Mesh(new THREE.PlaneGeometry(w,h), new THREE.MeshBasicMaterial({ color:c, side:THREE.DoubleSide, toneMapped:false })); b.position.set(x,y,z); b.lookAt(0,0,0); envS.add(b); };
+  softbox(1.8, 7, -7, 1, 3, new THREE.Color(6,8,11));        // tall cold strip, left front
+  softbox(.8, 6, 7, 1, -2, new THREE.Color(3.5,5,8));        // thin strip, right back
+  softbox(.5, 6, -3, 0, -8, new THREE.Color(2.5,3.5,6));     // back-left kicker
+  softbox(6, 2, 0, 8, 1, new THREE.Color(2.4,3.2,4.4));      // overhead panel
+  softbox(5, .6, 0, -3, 7, new THREE.Color(1.2,1.5,2));      // low front bounce
+  const envTex = pm.fromScene(envS, .02).texture;
+
   // bottle
   const wrap = new THREE.Group(), rig = new THREE.Group(); wrap.add(rig); scene.add(wrap);
   const profile = [[0,0],[.038,.002],[.043,.008],[.045,.02],[.045,.16],[.044,.17],[.038,.181],[.028,.191],[.022,.2],[.02,.209],[.02,.215],[.023,.218],[.023,.221],[0,.221]].map(p => new THREE.Vector2(p[0],p[1]));
-  rig.add(new THREE.Mesh(new THREE.LatheGeometry(profile, LITE ? 64 : 96), new THREE.MeshPhysicalMaterial({
-    color:0x121416, metalness:1, roughness:.2, envMap, envMapIntensity:1.05, clearcoat:LITE ? 0 : .5, clearcoatRoughness:.14, reflectivity:1 })));
-  const capMat = new THREE.MeshPhysicalMaterial({ color:0x101214, metalness:1, roughness:.24, envMap, envMapIntensity:.95, clearcoat:LITE ? 0 : .35, clearcoatRoughness:.2 });
-  const cap = new THREE.Mesh(new THREE.CylinderGeometry(.0255,.024,.032,48), capMat); cap.position.y = .237; rig.add(cap);
+  const bodyMat = new THREE.MeshPhysicalMaterial({ color:0x6b7078, metalness:1, roughness:.3, envMap:envTex, envMapIntensity:1.25, clearcoat:0 });
+  frostify(bodyMat);
+  rig.add(new THREE.Mesh(new THREE.LatheGeometry(profile, LITE ? 64 : 96), bodyMat));
+  const capMat = new THREE.MeshPhysicalMaterial({ color:0x626870, metalness:1, roughness:.34, envMap:envTex, envMapIntensity:1.2, clearcoat:0 });
+  frostify(capMat);
+  const capGeo = new THREE.CylinderGeometry(.0255,.024,.032,48); capGeo.translate(0,.237,0);   // built in bottle space so the frost lines up
+  const cap = new THREE.Mesh(capGeo, capMat); rig.add(cap);
   const gasket = new THREE.Mesh(new THREE.TorusGeometry(.0225,.002,10,48), new THREE.MeshStandardMaterial({ color:0x0c0c0e, metalness:.1, roughness:.88, envMapIntensity:.15 }));
   gasket.rotation.x = Math.PI/2; gasket.position.y = .22; rig.add(gasket);
   const lp2 = new THREE.Mesh(new THREE.TorusGeometry(.014,.0032,10,32), capMat); lp2.rotation.x = Math.PI/2; lp2.position.set(0,.249,-.006); rig.add(lp2);
@@ -357,6 +530,24 @@ const flask = (function(){
     map:new THREE.CanvasTexture(lc), transparent:true, roughness:.5, metalness:0, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-2, envMapIntensity:.15 }));
   label.position.y = .098; rig.add(label);
 
+  // wispy vapour texture (turbulent, soft-edged) so the cold air looks like real mist, not round blobs
+  const wispCv = document.createElement('canvas'); wispCv.width = wispCv.height = 128;
+  const wcx = wispCv.getContext('2d'), wd = wcx.createImageData(128,128), wl = Float32Array.from({ length:256 }, Math.random);
+  const wn = (x, y) => { const ix = Math.floor(x), iy = Math.floor(y), fx = x-ix, fy = y-iy, sx = fx*fx*(3-2*fx), sy = fy*fy*(3-2*fy),
+    q = (i,j) => wl[((iy+j)&15)*16 + ((ix+i)&15)]; return q(0,0)*(1-sx)*(1-sy) + q(1,0)*sx*(1-sy) + q(0,1)*(1-sx)*sy + q(1,1)*sx*sy; };
+  for(let y=0;y<128;y++) for(let x=0;x<128;x++){
+    const u = x/128, v = y/128, r = Math.hypot(u-.5, v-.5)*2, o = (y*128 + x)*4;
+    const n = .55*wn(u*3,v*3) + .3*wn(u*6+1.7,v*6) + .15*wn(u*12,v*12+3.1);
+    const a = Math.min(1, Math.max(0, (n - .36)*2.6))*Math.max(0, Math.min(1, (1 - r)/.7));
+    wd.data[o] = wd.data[o+1] = wd.data[o+2] = 255; wd.data[o+3] = a*255;
+  }
+  wcx.putImageData(wd,0,0);
+  const wispTex = new THREE.CanvasTexture(wispCv);
+  const NV = LITE ? 12 : 26, vap = [];
+  for(let i=0;i<NV;i++){
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:wispTex, transparent:true, depthWrite:false, opacity:0, color:0xcfe9ff, fog:false }));
+    rig.add(sp); vap.push({ sp, ph:Math.random(), spd:.07 + Math.random()*.07, a:Math.random()*Math.PI*2, sw:(Math.random() < .5 ? -1 : 1)*(.4 + Math.random()*.6), sz:.07 + Math.random()*.08 });
+  }
   let nextFlash = 1.5 + Math.random()*2.5, lastM = 0;
   function strike(){
     const az = Math.random()*Math.PI*2, el = (25 + Math.random()*55)*Math.PI/180, u = dome.material.uniforms;
@@ -369,7 +560,13 @@ const flask = (function(){
       const m = P.m, u = dome.material.uniforms, sc = R/.56;
       wrap.scale.setScalar(sc); wrap.position.y = -.11*sc;
       rig.position.set(P.fdx, P.fdy, 0); rig.rotation.set(P.frx, P.fry + fyaw, P.frz); rig.scale.setScalar(Math.max(P.fs,.0001));
-      fKey.intensity = 1.2*m; fFill.intensity = .28*m;
+      fKey.intensity = 1.2*m; fFill.intensity = 1.0*m;
+      frostU.uFrost.value = m*.3; frostU.uDrops.value = m; frostU.uTime.value = reduce ? 0 : t;
+      for(const v of vap){                                                      // cold air is heavy: it spills off the cap and sinks, swirling outward
+        const k = (v.ph + t*v.spd) % 1, e = k*k*(3-2*k), rad = .05 + .09*Math.pow(k,.75), ang = v.a + k*v.sw, s = v.sz*(.6 + 1.6*k);
+        v.sp.position.set(Math.cos(ang)*rad, .24 - .245*e, Math.sin(ang)*rad); v.sp.scale.set(s*1.4, s, 1);
+        v.sp.material.opacity = Math.pow(Math.sin(Math.PI*k), 1.3)*.26*m; v.sp.material.rotation = ang + k;
+      }
       u.flash.value *= Math.exp(-dt*9.7); flashLight.intensity *= Math.exp(-dt*12);
       if(!reduce && ((lastM < .5 && m >= .5) || (m > .5 && t > nextFlash))){ strike(); nextFlash = t + 3 + Math.random()*6; }
       lastM = m;
@@ -494,11 +691,8 @@ addEventListener('resize', resize); resize();
 const ICE_KF = [
   { x:0,    y:0,   rx:0,   ry:0,    rz:0,    s:1,    k:1 },   // frozen in time
   { x:1.1,  y:0,   rx:.15, ry:.9,   rz:0,    s:1.7,  k:1 },   // cold to the core
-  { x:-1.2, y:-.1, rx:.55, ry:2.2,  rz:.1,   s:1.35, k:1 },   // every edge, cleaved
-  { x:1.2,  y:0,   rx:-.2, ry:-1.2, rz:-.15, s:1.25, k:1 },   // clear as glass
-  { x:0,    y:-.4, rx:-.2, ry:0,    rz:0,    s:.85,  k:1 },   // slow to melt (reshapes)
-  { x:1.2,  y:.3,  rx:.3,  ry:-2.0, rz:-.4,  s:1.3,  k:1 },   // light bends here
-  { x:-1.2, y:0,   rx:0,   ry:1.0,  rz:.15,  s:1.05, k:2.5 }, // pure at 0 degrees
+  { x:0,    y:.35, rx:0,   ry:0,    rz:0,    s:1.15, k:1 },   // no two alike (reshapes)
+  { x:-1.2, y:.1,  rx:-.3, ry:1.5,  rz:.2,   s:.9,   k:4 },   // let it fall (heavy snow)
   { x:0,    y:0,   rx:0,   ry:0,    rz:0,    s:1,    k:1 }    // stay cold
 ];
 const ID = { x:0, y:-3, rx:0, ry:0, rz:0, s:.001, k:1 };                       // ice parked off-screen
@@ -516,7 +710,7 @@ const FLASK_KF = [
 ].map(o => ({ ...ID, ...FD, ...o, m:1 }));
 const BRIDGE = { ...FD, x:0, y:-1.3, rx:1.2, ry:2, rz:.5, s:.5, k:2, m:.5, fdy:.05, frx:.2, fry:2.4, frz:.35, fs:.55 };   // ice drops away, steel rises
 const KF = [ ...ICE_KF.map(o => ({ ...FD, ...o })), BRIDGE, ...FLASK_KF ];
-const RESHAPE_AT = [4, 8];
+const RESHAPE_AT = [2];
 const secEls = Array.from(document.querySelectorAll('main section'));
 let centers = [];
 function refreshCenters(){ centers = secEls.map(e => e.offsetTop + e.offsetHeight/2); }
